@@ -1,34 +1,71 @@
 "Tools for using reflection to inspect function calls."
-import inspect
+from .wrapping import get_argspec
 
 
-def get_arguments(f, call_args, call_kwargs):
+def get_call_arguments(f, call_args, call_kwargs):
     """
-    Given the signature of a function f, and the args and kwargs
-    of a call to f, determine what the arguments of f were.
+    Return a dictionary mapping the names of arguments to f,
+    including `*packed_varargs` and `**packed_kwargs` type arguments,
+    to their values in the call to f.
 
-    Return them as a dict. The varargs of f (if any) will be a list
-    and the kwargs of f (if any) will be a dict, each under the
-    appropriate key.
+    This function is intended to be usable for logging and exception
+    handling, so it should never raise.
 
-    A note on error conditions: it's a bug if the returned arguments are ever
-    completely incorrect, but in some edge cases where the arguments were
-    misspecified (for example, an argument is given both positionally and
-    as a keyword argument), the output becomes ambiguous. As a rule, if a
-    TypeError would have been thrown by the call, then any ambiguously correct
-    argument assignment is considered acceptable here.
+    PARAMETERS
+    ----------
+    f : function or method
+        Note that f cannot necessarily be an arbitrary callable, and
+        also that many decorators will clobber the metadata needed. If
+        you use `tdxutil.wrapping.wraps` for decorators, the metadata
+        should still be available.
+    call_args : {list, tuple}
+        The positional arguments in a call to `f`.
+    call_args : dict
+        The keyword arguments in a call to `f`.
+
+    RETURNS
+    -------
+    arguments: dict
+        A dict whose keys are string names of arguments in the
+        signature of f. All of the regular (non-packed) arguments
+        are guaranteed to appear here; if they are missing in the call then
+        they will be set to a value such as `"__missing_argument_x__"`. The
+        packed varargs argument, if any exists in the signature of `f`, will be
+        a possibly empty list. The packed kwargs argument, if any exists in the
+        signature of `f`, will be a possibly empty dict.
+
+    NOTES
+    -----
+    If there are extra positional or keyword arguments that make the call
+    illegal, they will be ingored in the output. If a regular argument is
+    specified both positionally and as a keyword argument, the positional
+    specification wins in this function. Both of these situations would
+    lead to a `TypeError` being raised if the call were actually attempted.
+
+    EXAMPLE
+    -------
+    >>> def f(a, b, c, d=4, *stuff, **morestuff): pass
+
+    >>> get_call_arguments(f, [1, 2], {'x':3})
+    # {'a': 1,
+    #  'b': 2,
+    #  'c': '__missing_argument_c__',
+    #  'd': 4,
+    #  'morestuff': {'x': 3},
+    #  'stuff': []}
+
+    >>> get_call_arguments(f, [1, 2, 3, 4, 5, 6], {'x':3})
+    # {'a': 1,
+    #  'b': 2,
+    #  'c': 3,
+    #  'd': 4,
+    #  'morestuff': {'x': 3},
+    #  'stuff': [5, 6]}
+
+    See the tests for more examples.
 
     """
-    spec = inspect.getargspec(f)
-    arguments = {}
-    if spec.varargs is not None:
-        arguments[spec.varargs] = []
-    if spec.keywords is not None:
-        arguments[spec.keywords] = {}
-    f_args = spec.args
-    f_kwargs = spec.keywords
-    f_varargs = spec.varargs
-    f_defaults = spec.defaults
+    f_args, f_varargs, f_kwargs, f_defaults = get_signature(f)
 
     # there are two major cases which are easier to deal with
     # separately:
@@ -40,16 +77,72 @@ def get_arguments(f, call_args, call_kwargs):
     #    kwargs of the call and default values for some of the
     #    regular arguments of f
     if len(call_args) > len(f_args):
-        return get_arguments_with_varargs(call_args, call_kwargs,
-                                          f_args, f_varargs, f_kwargs)
+        return _get_arguments_extra_positional(
+            call_args, call_kwargs,
+            f_args, f_varargs, f_kwargs
+        )
     else:
-        return get_arguments_no_varargs(call_args, call_kwargs,
-                                        f_args, f_defaults, f_varargs,
-                                        f_kwargs)
+        return _get_arguments_no_extra_positional(
+            call_args, call_kwargs,
+            f_args, f_defaults, f_varargs, f_kwargs
+        )
 
 
-def get_arguments_with_varargs(call_args, call_kwargs,
-                               f_args, f_varargs, f_kwargs):
+def get_signature(f):
+    """
+    Return a tuple (args, defaults, varargs, kwargs) from a function
+    signature. If there are no varargs, then `varargs` is None.
+
+    PARAMETERS
+    ----------
+    f : function or method
+        Note that f cannot necessarily be an arbitrary callable, and
+        also that many decorators will clobber the metadata needed. If
+        you use `tdxutil.wrapping.wraps` for decorators, the metadata
+        should still be available.
+
+    RETURNS
+    -------
+    args : list
+        A list of the string names of all regular arguments (not unpacked
+        varargs or keyword args) of `f`.
+    varargs : {None, str}
+        If the signature of f contains a varargs positional argument,
+        this will be the string name of that argument. (For example if
+        the argument list contains `*myvarargs` we get `"myvarargs"``).
+        If there is no vararg argument, this will be None.
+    kwargs : {None, str}
+        If the signature of f contains a packed keyword argument,
+        this will be the string name of that argument. (For example if
+        the argument list contains `**mykwargs` we get `"mykwargs"``).
+        If there is no packed keyword argument, this will be None.
+    defaults : list
+        A list of all the default values for regular arguments of `f`.
+        In general it can be shorter than `args`, and `defaults` will
+        be aligned with `args[-len(defaults):]`
+
+    EXAMPLES
+    --------
+    >>> def f(a, b=3, c=5, *stuff, **morestuff): pass
+
+    >>> get_signature(f)
+    # (['a', 'b', 'c'], [3, 5], 'stuff', 'morestuff')
+
+    >>> def f(x, y): pass
+
+    >>> get_signature(f)
+    # (['x', 'y'], [], None, None)
+    """
+    spec = get_argspec(f)
+    f_args = spec.args
+    f_varargs = spec.varargs
+    f_kwargs = spec.keywords
+    f_defaults = [] if spec.defaults is None else list(spec.defaults)
+    return f_args, f_varargs, f_kwargs, f_defaults
+
+
+def _get_arguments_extra_positional(call_args, call_kwargs,
+                                    f_args, f_varargs, f_kwargs,):
     arguments = {}
     # handle all of the regular args of f
     n_f_args = len(f_args)
@@ -69,32 +162,41 @@ def get_arguments_with_varargs(call_args, call_kwargs,
     return arguments
 
 
-def get_arguments_no_varargs(call_args, call_kwargs,
-                             f_args, f_defaults, f_varargs, f_kwargs):
+def _get_arguments_no_extra_positional(call_args, call_kwargs,
+                                       f_args, f_defaults, f_varargs,
+                                       f_kwargs):
     arguments = {}
     # if varargs exist in the signature, add them as empty
     if f_varargs is not None:
         arguments[f_varargs] = []
-    # handle all of the positional args in the call
-    n_pos_arg = len(call_args)
-    for name, value in zip(f_args, call_args):
-        arguments[name] = value
-    # handle all of the remaining regular args of f that have default
-    # values, if any. This is easier to do by iterating backward
-    for name, default in zip(f_args[n_pos_arg:][::-1], f_defaults[::-1]):
-        if name in call_kwargs:
-            arguments[name] = call_kwargs[name]
+    # segment the regular arguments of f into three groups
+    #  * everything before end_positional is specified positionally
+    #    in the call, regardless of whether it has a default value
+    #  * everything between end_positional and start_defaulted must
+    #    either be specified via a kwarg in the call or be missing
+    #  * everything after start_defaulted has a default value and is
+    #    not positional, so it either was a kwarg in the call or has the
+    #    default value
+    n_args = len(f_args)
+    n_positional = len(call_args)
+    n_no_defaults = n_args - len(f_defaults)
+    for i, name in enumerate(f_args):
+        # if there's a positional argument in the call, that's what we use
+        if i < n_positional:
+            arguments[name] = call_args[i]
         else:
-            arguments[name] = default
-    # handle all of the remaining regular args of f that do not have
-    # default values, if any. Either they are in kwargs or they are missing
-    # (which would result in an exception, but since this code can
-    # be used by exception-handling functions, we need to handle it)
-    for name in f_args[n_pos_arg:-len(f_defaults)]:
-        if name in call_kwargs:
-            arguments[name] = call_kwargs[name]
-        else:
-            arguments[name] = '__missing_argument_{}__'.format(name)
+            # if there's no positional arg but there is a kwarg in the call,
+            # that's what we use
+            if name in call_kwargs:
+                arguments[name] = call_kwargs[name]
+            else:
+                # otherwise either we use a default from the signature of
+                # f or the argument is missing.
+                idx_in_defaults = i - n_no_defaults
+                if idx_in_defaults >= 0:
+                    arguments[name] = f_defaults[idx_in_defaults]
+                else:
+                    arguments[name] = '__missing_argument_{}__'.format(name)
     # set the f_kwargs key
     if f_kwargs is not None:
         arguments[f_kwargs] = {
