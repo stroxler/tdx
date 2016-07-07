@@ -1,3 +1,6 @@
+test:
+	nosetests
+
 dev-install:
 	pip install -e .
 
