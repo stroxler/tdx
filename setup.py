@@ -41,5 +41,6 @@ setup(name=PACKAGE,
       license='MIT',
       packages=[PACKAGE],
       install_requires=[],
+      tests_require=['pytest'],
       include_package_data=True,
       zip_safe=False)

@@ -1,5 +1,5 @@
 test:
-	nosetests
+	py.test
 
 dev-install:
 	pip install -e .

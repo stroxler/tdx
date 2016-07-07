@@ -1,5 +1,3 @@
-from numpy.testing import assert_equal
-
 from ..reflection import get_signature, get_call_arguments
 
 
@@ -12,31 +10,31 @@ def test_get_signature():
     expected = ([], None, None, [])
     actual = get_signature(f)
     print actual, expected
-    assert_equal(actual, expected, msg)
+    assert actual == expected, msg
 
     def f(x, y): pass
     msg = "get_signature should handle functions with positional arguments"
     expected = (['x', 'y'], None, None, [])
     actual = get_signature(f)
-    assert_equal(actual, expected, msg)
+    assert actual == expected, msg
 
     def f(*fargs): pass
     msg = "get_signature should handle functions with *vararg arguments"
     expected = ([], 'fargs', None, [])
     actual = get_signature(f)
-    assert_equal(actual, expected, msg)
+    assert actual == expected, msg
 
     def f(**fkwargs): pass
     msg = "get_signature should handle functions with *kwarg arguments"
     expected = ([], None, 'fkwargs', [])
     actual = get_signature(f)
-    assert_equal(actual, expected, msg)
+    assert actual == expected, msg
 
     def f(x, y=2, z=3): pass
     msg = "get_signature should handle functions with defaulted arguments"
     expected = (['x', 'y', 'z'], None, None, [2, 3])
     actual = get_signature(f)
-    assert_equal(actual, expected, msg)
+    assert actual == expected, msg
 
 
 # Test suite for get_call_arguments ------------------------------------------
@@ -47,7 +45,7 @@ def test_get_call_arguments_empty_call():
     kwargs = {}
     expected = {}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_all_positional():
@@ -56,7 +54,7 @@ def test_get_call_arguments_all_positional():
     kwargs = {}
     expected = {'x': 1, 'y': 2}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_all_kwargs():
@@ -65,7 +63,7 @@ def test_get_call_arguments_all_kwargs():
     kwargs = {'x': 1, 'y': 2}
     expected = {'x': 1, 'y': 2}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_missing_args():
@@ -74,7 +72,7 @@ def test_get_call_arguments_missing_args():
     kwargs = {'z': 3}
     expected = {'x': 1, 'y': '__missing_argument_y__', 'z': 3}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_empty_varargs():
@@ -83,7 +81,7 @@ def test_get_call_arguments_empty_varargs():
     kwargs = {}
     expected = {'x': '__missing_argument_x__', 'fargs': []}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_nonempty_varargs():
@@ -92,7 +90,7 @@ def test_get_call_arguments_nonempty_varargs():
     kwargs = {}
     expected = {'x': 1, 'fargs': [2, 3]}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_empty_vkwargs():
@@ -101,7 +99,7 @@ def test_get_call_arguments_empty_vkwargs():
     kwargs = {}
     expected = {'x': 1, 'fkwargs': {}}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_nonempty_vkwargs():
@@ -110,7 +108,7 @@ def test_get_call_arguments_nonempty_vkwargs():
     kwargs = {'y': 3, 'z': 4}
     expected = {'x': 1, 'fkwargs': kwargs}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_all_defaulted_args():
@@ -119,7 +117,7 @@ def test_get_call_arguments_all_defaulted_args():
     kwargs = {}
     expected = {'x': 1, 'y': 2}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_some_defaulted_args_some_pos():
@@ -128,7 +126,7 @@ def test_get_call_arguments_some_defaulted_args_some_pos():
     kwargs = {}
     expected = {'x': 4, 'y': 2}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_some_defaulted_args_some_kwargs():
@@ -137,7 +135,7 @@ def test_get_call_arguments_some_defaulted_args_some_kwargs():
     kwargs = {'y': 4}
     expected = {'x': 1, 'y': 4}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_extra_pos_args():
@@ -150,7 +148,7 @@ def test_get_call_arguments_extra_pos_args():
     kwargs = {}
     expected = {'x': 1, 'y': 2}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_extra_kwargs():
@@ -163,7 +161,7 @@ def test_get_call_arguments_extra_kwargs():
     kwargs = {'x': 1, 'y': 2, 'z': 5}
     expected = {'x': 1, 'y': 2}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_kitchen_sink_novarargs_legal():
@@ -176,7 +174,7 @@ def test_get_call_arguments_kitchen_sink_novarargs_legal():
     kwargs = {'w': 4, 'this': 'that'}
     expected = {'x': 1, 'y': 2, 'z': 3, 'w': 4, 'fkwargs': {'this': 'that'}}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
 
 
 def test_get_call_arguments_kitchen_sink_varargs_legal():
@@ -190,4 +188,4 @@ def test_get_call_arguments_kitchen_sink_varargs_legal():
     expected = {'x': 1, 'y': 2, 'z': 1, 'w': 2,
                 'fargs': [3, 2], 'fkwargs': {'this': 'that'}}
     actual = get_call_arguments(f, args, kwargs)
-    assert_equal(actual, expected)
+    assert actual == expected
