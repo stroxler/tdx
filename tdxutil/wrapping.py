@@ -26,11 +26,11 @@ def update_wrapper(wrapper,
     Like functools.update_wrapper, except it also sets the __argspec__
     field.
 
-    It first attempts to look up the __argspec__ field in `wrapped`,
+    We first attempt to look up the __argspec__ field in `wrapped`,
     which allows us to use update_wrapper repeatedly when working
     with stacked decorators.
 
-    If it fails to find wrapped.__argspec__, it instead uses
+    If we fail to find wrapped.__argspec__, we instead use
     the output of inspect.getargspec() applied to `wrapped`.
 
     """
