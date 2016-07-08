@@ -1,9 +1,9 @@
 """
 Tools to make working with exceptions easier.
 """
-import functools
 
-from .reflection import get_arguments
+from .reflection import get_call_arguments
+from .wrapping import wraps
 
 
 def try_with_context(error_context, f, *args, **kwargs):
@@ -35,7 +35,7 @@ def try_with_lazy_context(error_context, f, *args, **kwargs):
         raise
 
 
-def with_context(context_message):
+def with_error_context(context_message):
     """
     Decorator for wrapping any function in a call to
     `try_with_lazy_context`, with a context message that will be formatted
@@ -53,13 +53,18 @@ def with_context(context_message):
     def decorator(f):
 
         def format_context_message(args, kwargs):
-            arguments = get_arguments(f, args, kwargs)
+            arguments = get_call_arguments(f, args, kwargs)
             try:
                 return context_message.format(**arguments)
             except:
                 return context_message + ' FAILED TO FORMAT'
 
-        @functools.wrap()
+        @wraps(f)
         def wrapped(*args, **kwargs):
-            error_context = lambda : format_context_message(args, kwargs)
+            def error_context():
+                return format_context_message(args, kwargs)
             return try_with_lazy_context(error_context, f, *args, **kwargs)
+
+        return wrapped
+
+    return decorator
