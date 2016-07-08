@@ -1,7 +1,7 @@
 from ..exceptions import (
     try_with_lazy_context,
     try_with_context,
-    with_error_context,
+    error_context,
 )
 
 
@@ -41,7 +41,7 @@ def test_try_with_context():
 
 def test_with_context_no_formatting():
 
-    @with_error_context("error context")
+    @error_context("error context")
     def f(x, y):
         raise ValueError("an error")
 
@@ -53,7 +53,7 @@ def test_with_context_no_formatting():
 
 def test_with_context_simple_formatting():
 
-    @with_error_context("error context {x} {y} {z}")
+    @error_context("error context {x} {y} {z}")
     def f(x, y, z):
         raise ValueError("an error")
 
@@ -65,7 +65,7 @@ def test_with_context_simple_formatting():
 
 def test_with_context_formatting_with_defaults():
 
-    @with_error_context("error context {x} {y} {z}")
+    @error_context("error context {x} {y} {z}")
     def f(x, y=2, z=2):
         raise ValueError("an error")
 
@@ -77,7 +77,7 @@ def test_with_context_formatting_with_defaults():
 
 def test_with_context_formatting_with_packed_args():
 
-    @with_error_context("error context {fargs} {fkwargs}")
+    @error_context("error context {fargs} {fkwargs}")
     def f(*fargs, **fkwargs):
         raise ValueError("an error")
 
