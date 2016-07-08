@@ -2,7 +2,7 @@ import copy
 
 import pytest
 
-from ..containers import add_dicts, add_sets, add_lists, flatten
+from ..collections import add_dicts, add_sets, add_lists, flatten
 
 
 def test_add_dicts_works():

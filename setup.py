@@ -5,7 +5,7 @@ PACKAGE = 'tdxutil'
 
 
 def readme():
-    with open('README') as f:
+    with open('README.rst') as f:
         return f.read()
 
 
@@ -40,7 +40,7 @@ setup(name=PACKAGE,
       author_email='steven.troxler@gmail.com',
       license='MIT',
       packages=[PACKAGE],
-      install_requires=[],
+      install_requires=['pyyaml'],
       tests_require=['pytest'],
       include_package_data=True,
       zip_safe=False)
