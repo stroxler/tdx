@@ -5,7 +5,7 @@ PACKAGE = 'tdxutil'
 
 
 def readme():
-    with open('README.md') as f:
+    with open('README') as f:
         return f.read()
 
 
