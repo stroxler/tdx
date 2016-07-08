@@ -4,13 +4,6 @@ import functools
 from ..wrapping import wraps, get_argspec
 
 
-def assert_equal(x, y, msg=None):
-    if msg is None:
-        assert x == y
-    else:
-        assert x == y, msg
-
-
 def test_get_argspec():
 
     msg = "Works when there's no __argspec__ attribute"
@@ -18,7 +11,7 @@ def test_get_argspec():
     def f(x): pass
     expected = ['x']
     actual = get_argspec(f).args
-    assert_equal(actual, expected, msg)
+    assert actual == expected, msg
 
     msg = "Works when there is an __argspec__ attribute"
 
@@ -26,7 +19,7 @@ def test_get_argspec():
     f.__argspec__ = 'argspec'
     expected = 'argspec'
     actual = get_argspec(f)
-    assert_equal(actual, expected, msg)
+    assert actual == expected, msg
 
 
 def test_wraps():
