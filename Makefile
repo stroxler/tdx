@@ -14,4 +14,4 @@ package: clean
 	python setup.py sdist
 
 pypi: package
-	twine upload dist/clickutil-*.tar.gz
+	twine upload dist/tdxutil-*.tar.gz
