@@ -40,7 +40,7 @@ setup(name=PACKAGE,
       author_email='steven.troxler@gmail.com',
       license='MIT',
       packages=[PACKAGE],
-      install_requires=['pyyaml'],
+      install_requires=['pyyaml', 'wrapt>=1.10.8'],
       tests_require=['pytest'],
       include_package_data=True,
       zip_safe=False)
