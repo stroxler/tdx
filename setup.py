@@ -1,7 +1,7 @@
 import os
 from setuptools import setup
 
-PACKAGE = 'tdxutil'
+PACKAGE = 'tdx'
 
 
 def readme():
@@ -35,7 +35,7 @@ setup(name=PACKAGE,
           'Programming Language :: Python :: 2.7',
       ],
       keywords='',
-      url='https://github.com/stroxler/tdxutil',
+      url='https://github.com/stroxler/tdx',
       author='Steven Troxler',
       author_email='steven.troxler@gmail.com',
       license='MIT',
