@@ -6,6 +6,55 @@ from .inspectcall import get_callargs
 from .exceptions import lazy_error_prefix
 
 
+def wraptify(decorator):
+    """
+    By adding a wrapping layer, make a decorator handle metadata
+    using wrapt
+
+    PARAMETERS
+    ----------
+    decorator : callable
+        A decorator which may not use wrapt for handling
+        metadata (most libraries don't) and therefore may clobber
+        some metadata
+
+    RETURNS
+    -------
+    wraptified : callable
+        A decorator whose output is the same as that of
+        `decorator`, except with an extra layer of wrapping
+        that takes no actions but attaches metadata based on
+        the decorator target using wrapt
+
+    This function is very useful when working with third-party
+    decorators, most of which use functools.wraps and clobber
+    the argspec. This will cause problems if, for example, you
+    want the argspec to still be available in ipython or if you
+    want to use functions like those from `tdx.inspectcall` that
+    use the argspec.
+
+    """
+    def wraptified(wrapped):
+        inner_wrapper = decorator(wrapped)
+        return _wrapt_proxy_decorator(inner_wrapper)(wrapped)
+    return wraptified
+
+
+def _wrapt_proxy_decorator(actual_wrapper):
+    """
+    Given a wrapper function which is the output of a call
+    to some decorator (which does not use wrapt), return
+    a new decorator which calls said wrapper (rather than the
+    target of the decoration) but picks up metadata from the
+    target function / object
+
+    """
+    @wrapt.decorator()
+    def proxied_wrapper(nominal_target, instance, args, kwargs):
+        return actual_wrapper(*args, **kwargs)
+    return proxied_wrapper
+
+
 def error_prefix_from_args(context_message):
     """
     Decorator for wrapping any function in a call to
@@ -36,7 +85,7 @@ def error_prefix_from_args(context_message):
     >>> def f(x, y=2, z=3, **fkwargs): raise Exception("error")
 
     >>> f(1, z=4, this='that')
-    # ...traceback information, which isn't affected...
+    # ...traceback information, which is not affected...
     # Exception: In call, x=1, y=2, z=4, fkwargs={'this': 'that'}:
     #    error
 
@@ -57,7 +106,7 @@ def error_prefix_from_args(context_message):
     """
 
     @wrapt.decorator
-    def decorator(wrapped, instance, args, kwargs):
+    def wrapper(wrapped, instance, args, kwargs):
 
         def format_context_message():
             arguments = get_callargs(wrapped, *args, **kwargs)
@@ -72,7 +121,7 @@ def error_prefix_from_args(context_message):
         with lazy_error_prefix(format_context_message):
             return wrapped(*args, **kwargs)
 
-    return decorator
+    return wrapper
 
 
 def debug(debug=True, delay=0, use_debugger=None):
@@ -103,7 +152,7 @@ def debug(debug=True, delay=0, use_debugger=None):
 
     """
     @wrapt.decorator
-    def decorator(wrapped, instance, args, kwargs):
+    def wrapper(wrapped, instance, args, kwargs):
         try:
             return wrapped(*args, **kwargs)
         except:
@@ -123,7 +172,7 @@ def debug(debug=True, delay=0, use_debugger=None):
                 debugger = use_debugger
             debugger.post_mortem(tb)
 
-    return decorator
+    return wrapper
 
 
 def _get_debugger():

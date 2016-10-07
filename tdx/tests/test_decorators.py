@@ -1,8 +1,51 @@
+import inspect
 import pytest
 from ..decorators import (
-    error_prefix_from_args, debug
+    error_prefix_from_args, debug, _wrapt_proxy_decorator,
+    wraptify
 )
 
+
+# test wraptify tools ---------------
+
+def test_wrapt_proxy_decorator():
+    def f(x):
+        return 1
+
+    def g(y):
+        return 2
+
+    out = _wrapt_proxy_decorator(g)(f)
+    assert out(1) == 2
+    actual_argspec = inspect.getargspec(out)
+    expected_argspec = inspect.ArgSpec(
+        args=['x'], varargs=None,
+        keywords=None, defaults=None
+    )
+    assert actual_argspec == expected_argspec
+
+
+def test_wraptify():
+    def double_output(f):
+        "Decorator to wrap a function in a doubling operation"
+        def wrapped(*args, **kwargs):
+            return 2 * f(*args, **kwargs)
+        return wrapped
+
+    def f(x, y):
+        "my docs for f"
+        return x + y
+
+    wraptified_double_output = wraptify(double_output)
+    nowrapt = double_output(f)
+    assert nowrapt(1, 2) == 6
+    assert nowrapt.__doc__ is None
+    yeswrapt = wraptified_double_output(f)
+    assert yeswrapt(1, 2) == 6
+    assert yeswrapt.__doc__ == "my docs for f"
+
+
+# test the debug decorator ---------------
 
 class MockDebugger(object):
     def __init__(self):
@@ -44,6 +87,8 @@ def test_debug_debugger_called_if_debug_True_and_raises():
     f()
     assert mock_debugger.called
 
+
+# test the error prefix decorators ---------------
 
 def assert_error_with_prefix(prefix, func, *args, **kwargs):
     try:
