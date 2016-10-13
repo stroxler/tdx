@@ -16,4 +16,4 @@ package: clean
 	python setup.py sdist
 
 pypi: package
-	twine upload dist/tdxutil-*.tar.gz
+	twine upload dist/tdx-*.tar.gz
