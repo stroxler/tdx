@@ -84,7 +84,26 @@ def get_callargs(f, *call_args, **call_kwargs):
     See the tests for more examples.
 
     """
-    f_args, f_varargs, f_kwargs, f_defaults = get_signature(f)
+    f_argspec = inspect.getargspec(f)
+    return callargs_from_argspec(f_argspec, *call_args, **call_kwargs)
+
+
+def callargs_from_argspec(f_argspec, *call_args, **call_kwargs):
+    """
+    Like get_callargs (see that function for docs) except instead of
+    passing in a callable f, we pass in its argspec.
+
+    The reason this function exists is that sometimes we have to do
+    an end-run around the usual argspec. For example, in the `clickutil`
+    package I have been unable to make the metadata of a click-decorated
+    function match that of the original function (wrapt doesn't work
+    with click because the decorators are classes, not wrapper unctions,
+    so I cannot just wraptify the click decorators). By separating
+    out the core logic that depends only on the argspec, I make the
+    `tdx` module more flexible and useful in more situations.
+
+    """
+    f_args, f_varargs, f_kwargs, f_defaults = get_signature(f_argspec)
 
     # there are two major cases which are easier to deal with
     # separately:
@@ -107,7 +126,7 @@ def get_callargs(f, *call_args, **call_kwargs):
         )
 
 
-def get_signature(f):
+def get_signature(argspec):
     """
     Return a tuple (args, defaults, varargs, kwargs) from a function
     signature. If there are no varargs, then `varargs` is None.
@@ -152,11 +171,10 @@ def get_signature(f):
     >>> get_signature(f)
     # (['x', 'y'], [], None, None)
     """
-    spec = inspect.getargspec(f)
-    f_args = spec.args
-    f_varargs = spec.varargs
-    f_kwargs = spec.keywords
-    f_defaults = [] if spec.defaults is None else list(spec.defaults)
+    f_args = argspec.args
+    f_varargs = argspec.varargs
+    f_kwargs = argspec.keywords
+    f_defaults = [] if argspec.defaults is None else list(argspec.defaults)
     return f_args, f_varargs, f_kwargs, f_defaults
 
 

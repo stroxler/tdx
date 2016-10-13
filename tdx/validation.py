@@ -55,3 +55,28 @@ def check_keys(d, required, allowed=None, optional=None, descr="the dictionary")
             "Key mismatch in %s. Missing required keys %r, found unexpected keys %r" %
             (descr, missing, unexpected)
         )
+
+
+def check_all_in(collection, permissible, descr='the collection'):
+    """
+    Verify that all items in a collection are in some permissible set
+
+    Parameters
+    ----------
+    collection : collection
+        A collection of items expected to all be permissible
+    permissible : {set, dict, list, tuple}
+        A set or dict (dicts are allowed because it's a common use
+        case to pre-validate that keys can be looked up) of permissible
+        values for items in `collection`.
+    descr : str
+        A description of the object being validated. Used in the
+        error message.
+
+    """
+    if not isinstance(permissible, set):
+        permissible = set(permissible)
+    unknown = {item for item in collection
+               if item not in permissible}
+    if len(unknown) > 0:
+        raise ValueError("Unknown items %r in %s" % (unknown, descr))

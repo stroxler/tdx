@@ -1,6 +1,72 @@
+"Utilities for handling files and data and loading"
+import importlib
 import os
 import json
 import yaml
+
+
+def load_python_object(identifier, descr):
+    """
+    Load a python object that's available from the current session
+
+    Parameters
+    ----------
+    identifier : str
+        A full python object identifier including modules, for example
+        'np.linalg.lstsq'.
+    descr : str
+        A description of the thing you are trying to load, used to give
+        better error messages if the load fails.
+
+    Returns
+    -------
+    obj : object
+        The loaded python object, for example if you have numpy
+        installed on your system and ask for `'np.linalg.lstsq'`, we would
+        return the `lstsq` function.
+
+    Notes
+    -----
+    The main use case here is to allow user-input configuration, for
+    example frameworks that define an interface and load user implementations
+    at runtime.
+
+    Examples
+    --------
+    >>> load_python_object("numpy.ndarray", "numpy ndarray function")
+    """
+    split_name = identifier.split('.')
+    module_name = '.'.join(split_name[:-1])
+    object_name = split_name[-1]
+    try:
+        module = importlib.import_module(module_name)
+        return getattr(module, object_name)
+    except ImportError:
+        raise ValueError('Could not load %s module %s' % (descr, module_name))
+    except AttributeError:
+        raise ValueError('Could not load %r %s' % (descr, identifier))
+
+
+def directory_of(filename):
+    """
+    Get the directory of the file specified by `filename`.
+
+    Typically used from python modules which have resources to load,
+    e.g. `THIS_DIR = this_dir(__file__)`
+    """
+    return os.path.dirname(os.path.abspath(filename))
+
+
+def path_from(filename, *relative_path):
+    """
+    Given a filename (usually the __file__ of a python module) and
+    a relative path to a resource from that file, return the filename
+    to the relative resource.
+
+    Since this might be used for reading or writing, we don't check that
+    the resource exists.
+    """
+    return os.path.join(directory_of(filename), *relative_path)
 
 
 def read_yaml(path):

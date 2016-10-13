@@ -36,7 +36,9 @@ def wraptify(decorator):
     """
     def wraptified(wrapped):
         inner_wrapper = decorator(wrapped)
-        return _wrapt_proxy_decorator(inner_wrapper)(wrapped)
+        outer_wrapper = _wrapt_proxy_decorator(inner_wrapper)(wrapped)
+        return outer_wrapper
+
     return wraptified
 
 

@@ -1,6 +1,6 @@
 import pytest
 
-from ..validation import check_keys, ANY
+from ..validation import check_keys, ANY, check_all_in
 
 
 def test_check_keys_on_empty_dict():
@@ -81,3 +81,34 @@ def test_check_keys_passes_if_allowed_is_ANY():
     required = ['x']
     allowed = ANY
     check_keys(d, required, allowed=allowed)
+
+
+def test_check_all_in_passes_for_various_dtypes():
+    collection = ['a', 'b']
+    # various types for permissible
+    permissible = ('a', 'b')
+    check_all_in(collection, permissible)
+    permissible = {'a', 'b'}
+    check_all_in(collection, permissible)
+    permissible = ['a', 'b']
+    check_all_in(collection, permissible)
+    permissible = {'a': 1, 'b': 1}
+    check_all_in(collection, permissible)
+    # various types for colection
+    collection = {'a', 'b'}
+    check_all_in(collection, permissible)
+    collection = ('a', 'b')
+    check_all_in(collection, permissible)
+
+
+def test_check_all_in_passes_when_more_permissible():
+    collection = ['a', 'a']
+    permissible = ('a', 'b')
+    check_all_in(collection, permissible)
+
+
+def test_check_all_raises_when_not_included():
+    collection = ['a', 'c']
+    permissible = ('a', 'b')
+    with pytest.raises(ValueError):
+        check_all_in(collection, permissible)
