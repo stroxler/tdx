@@ -1,5 +1,8 @@
 from __future__ import print_function
 
+import warnings
+import time
+
 import wrapt
 
 from .inspectcall import get_callargs
@@ -55,6 +58,74 @@ def _wrapt_proxy_decorator(actual_wrapper):
     def proxied_wrapper(nominal_target, instance, args, kwargs):
         return actual_wrapper(*args, **kwargs)
     return proxied_wrapper
+
+
+def retry(n_retry,
+          exceptions=(Exception,),
+          wait_time=1, wait_multiplier=2,
+          no_wait_first_retry=True,
+          warn=True, warn_f=None, warn_msg=None):
+    """
+    Decorate a function to retry on failures
+
+    PARAMETERS
+    ----------
+    n_retry : int
+        Number of times to retry
+    exceptions : tuple, optional
+        A list or tuple of exception types to catch. If not specified then
+        we catch Exception (so anything). Any exception that isn't a subtype
+        of something in this tuple will be raised without retry.
+    no_wait_first_retry : {True, False}, optional
+        Should we start waiting wait_time seconds on the first retry? By
+        default the very first retry is immediate, but you can toggle this
+        behavior
+    wait_time : {int, float}, optional
+        Seconds to wait the first time we wait between retries (whether this
+        happens before the first retry or the second depends on the value
+        of `no_wait_first_retry`)
+    wait_multiplier : {int, float}, optional
+        Multiplier for wait time, to enable exponential backoff.
+    warn : {True, False}, optional
+        Should we warn on failures that are being retried?
+    warn_f : callable, optional
+        Function to call with warning message. If `None` and `warn` is True,
+        then we use `warnings.warn`
+    warn_msg : string, optional
+        String to use in warning message. Can use python formatting keys
+        '{f}' and '{exception}' or '{exception!r}' in the message.
+
+    RETURNS
+    -------
+    retry_wrapped : callable
+        The original function wrapped in retry logic. The wrapping is done
+        with wrapt so all the metadata should be preserved.
+
+    """
+
+    exceptions = tuple(exceptions)
+    warn_f = warnings.warn if warn_f is None else warn_f
+    warn_msg = ("Function {f} raised {exception!r}, retrying"
+                if warn_msg is None else warn_msg)
+
+    @wrapt.decorator()
+    def wrapper(f, instance, args, kwargs):
+        wait = wait_time
+        failed = 0
+        while True:
+            try:
+                return f(*args, **kwargs)
+            except exceptions as e:
+                failed += 1
+                if failed > n_retry:
+                    raise
+                if warn:
+                    warn_f(warn_msg.format(f=f.__name__, exception=e))
+                if failed > 1 or (not no_wait_first_retry):
+                    time.sleep(wait)
+                    wait *= wait_multiplier
+
+    return wrapper
 
 
 def error_prefix_from_args(context_message):
