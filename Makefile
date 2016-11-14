@@ -17,3 +17,6 @@ package: clean
 
 pypi: package
 	twine upload dist/tdx-*.tar.gz
+
+tag:
+	./dev-scripts/tag-release.sh
