@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import warnings
 import time
+import random
 
 import wrapt
 
@@ -63,6 +64,7 @@ def _wrapt_proxy_decorator(actual_wrapper):
 def retry(n_retry,
           exceptions=(Exception,),
           wait_time=1, wait_multiplier=2,
+          jitter=0.1,
           no_wait_first_retry=True,
           warn=True, warn_f=None, warn_msg=None):
     """
@@ -86,6 +88,15 @@ def retry(n_retry,
         of `no_wait_first_retry`)
     wait_multiplier : {int, float}, optional
         Multiplier for wait time, to enable exponential backoff.
+    jitter : {float}, optional
+        jitter on the wait. The actual wait time between retries is
+        (the actual wait time) +/- (a random uniform drawn from the
+        interval [ - jitter * wait_time, + jitter * wait_time ])
+          The purpose of randomization is to ensure that if failures are due to
+        concurrency issues (for example you have several workers whose clients
+        are trying to access a lockable resource at the same time) then
+        separate processes don't retry in lock-step. If you set `jitter`
+        to zero, you can disable it.
     warn : {True, False}, optional
         Should we warn on failures that are being retried?
     warn_f : callable, optional
@@ -102,11 +113,17 @@ def retry(n_retry,
         with wrapt so all the metadata should be preserved.
 
     """
+    if not 0 <= jitter < 1:
+        raise ValueError('`jitter` must be nonnegative and less than '
+                         '1, got %r' % jitter)
 
     exceptions = tuple(exceptions)
     warn_f = warnings.warn if warn_f is None else warn_f
     warn_msg = ("Function {f} raised {exception!r}, retrying"
                 if warn_msg is None else warn_msg)
+
+    def randomized_wait(wait):
+        return (1 + random.uniform(-jitter, jitter)) * wait
 
     @wrapt.decorator()
     def wrapper(f, instance, args, kwargs):
@@ -122,7 +139,7 @@ def retry(n_retry,
                 if warn:
                     warn_f(warn_msg.format(f=f.__name__, exception=e))
                 if failed > 1 or (not no_wait_first_retry):
-                    time.sleep(wait)
+                    time.sleep(randomized_wait(wait))
                     wait *= wait_multiplier
 
     return wrapper

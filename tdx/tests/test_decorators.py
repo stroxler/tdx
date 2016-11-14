@@ -1,5 +1,7 @@
+from __future__ import print_function
 import inspect
 import time
+import random
 
 import pytest
 from ..decorators import (
@@ -94,13 +96,12 @@ def test_debug_debugger_called_if_debug_True_and_raises():
 
 def assert_error_with_prefix(prefix, func, *args, **kwargs):
     try:
-        print args
         func(*args, **kwargs)
         raise AssertionError("No error raised")
     except Exception as e:
         if not e.args[0].startswith(prefix):
-            print "expected prefix %r" % prefix
-            print "actual message %r" % e.args[0]
+            print("expected prefix %r" % prefix)
+            print("actual message %r" % e.args[0])
             raise
 
 
@@ -179,6 +180,7 @@ class Failer(object):
                  msg='test error', exceptions=(ValueError,),
                  warn_f=None, warn=True, warn_msg='oops',
                  wait_time=0, wait_multiplier=1,
+                 jitter=0,
                  no_wait_first_retry=True, ):
         self.n_fail = 0
         self.times_to_fail = times_to_fail
@@ -188,9 +190,9 @@ class Failer(object):
         @retry(n_retry, exceptions,
                warn=warn, warn_f=warn_f, warn_msg=warn_msg,
                wait_time=wait_time, wait_multiplier=wait_multiplier,
+               jitter=jitter,
                no_wait_first_retry=no_wait_first_retry)
         def f():
-            print('running f')
             if self.n_fail < self.times_to_fail:
                 self.n_fail += 1
                 raise self.exception_to_raise(self.msg)
@@ -295,3 +297,24 @@ def test_retry_backoff_with_wait_first(monkeypatch):
     )
     failer.f()
     assert times == [1, 2, 4]
+
+
+def test_retry_backoff_randomized(monkeypatch):
+    times = []
+
+    def mysleep(time):
+        times.append(time)
+
+    def myuniform(a, b):
+        return 0.5 * a
+    monkeypatch.setattr(time, 'sleep', mysleep)
+    monkeypatch.setattr(random, 'uniform', myuniform)
+    failer = Failer(
+        times_to_fail=2, n_retry=2, wait_time=1, wait_multiplier=2,
+        jitter=0.5,
+        no_wait_first_retry=False,
+    )
+    failer.f()
+    assert times == [0.75, 1.5]
+
+
