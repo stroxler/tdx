@@ -1,7 +1,9 @@
+import json
+import datetime
 import pytest
 from ..data import (
     read_json, read_yaml, write_json, read_content, write_content,
-    path_from, directory_of, load_python_object,
+    path_from, directory_of, load_python_object, DateTimeEncoder,
 )
 
 
@@ -76,3 +78,18 @@ def test_load_python_object():
     # test that we catch AttributeError
     with pytest.raises(ValueError):
         load_python_object('os.does_not_exist__', 'thing')
+
+
+def test_DateTimeEncoder():
+    original = {
+        'date': datetime.date(1999, 1, 1),
+        'datetime': datetime.datetime(1999, 1, 1, 1, 1, 1),
+        'not_a_date': 'aa',
+    }
+    round_tripped = json.loads(json.dumps(original, cls=DateTimeEncoder))
+    expected = {
+        'date': original['date'].isoformat(),
+        'datetime': original['datetime'].isoformat(),
+        'not_a_date': original['not_a_date'],
+    }
+    assert round_tripped == expected

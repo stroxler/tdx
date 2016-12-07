@@ -3,6 +3,7 @@ import importlib
 import os
 import json
 import yaml
+import datetime
 
 
 def load_python_object(identifier, descr):
@@ -127,3 +128,23 @@ def _raise_if_exists(path):
             "tdxutil write functions may only be used for new files, file "
             "%s exists" % path
         )
+
+
+# Convert datetimes to strings. From SO thread:
+class DateTimeEncoder(json.JSONEncoder):
+    """
+    Customized json encoder that can handle datetime.date and
+    datetime.datetime; they are converted to iso format
+
+    When you decode, the result will be a string (tdx does not currently have
+    auto-decoding), but it should be easily machine-convertible
+
+    Adapted from this Stack Overflow thread (extended to dates as well as datetimes)
+    http://stackoverflow.com/questions/11875770/how-to-overcome-datetime-datetime-not-json-serializable-in-python # noqa
+    """
+
+    def default(self, o):
+        if isinstance(o, datetime.datetime) or isinstance(o, datetime.date):
+            return o.isoformat()
+
+        return json.JSONEncoder.default(self, o)
