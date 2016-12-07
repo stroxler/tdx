@@ -1,5 +1,6 @@
 test:
 	py.test
+	flake8
 
 dev-install:
 	pip install -e .

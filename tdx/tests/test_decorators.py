@@ -316,5 +316,3 @@ def test_retry_backoff_randomized(monkeypatch):
     )
     failer.f()
     assert times == [0.75, 1.5]
-
-

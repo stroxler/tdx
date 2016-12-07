@@ -1,3 +1,4 @@
+# flake8: noqa
 from . import data
 from . import collections
 from . import exceptions
