@@ -11,7 +11,11 @@ little error checking.
 import re
 
 
-def get_by_specifier(specifier, collection):
+class RaiseIfSpecifierNotFound(object):
+    pass
+
+
+def get_by_specifier(specifier, collection, default=RaiseIfSpecifierNotFound):
     """
     Given a collection (dict or list of dicts and lists -
     basically a json blob in python form), recursively find
@@ -26,13 +30,27 @@ def get_by_specifier(specifier, collection):
     applications that need to grab data out of data structures
     based on bash input.
 
+    If the specifier is invalid, we raise a ValueError. If the
+    key lookup fails, we raise a ValueError if `default` is
+    left at its default value of RaiseIfSpecifierNotFound, but
+    otherwise we return the default.
+
     """
     keys = _specifier_to_keys(specifier)
     item = collection
     # TODO should we customize the message on lookup errors?
-    for k in keys:
-        item = item[k]
-    return item
+    try:
+        for k in keys:
+            item = item[k]
+        return item
+    except (IndexError, KeyError):
+        if default is RaiseIfSpecifierNotFound:
+            raise ValueError(
+                'Failed to find key %r in specifier %r' %
+                (k, specifier)
+            )
+        else:
+            return default
 
 
 def _specifier_to_keys(specifier):

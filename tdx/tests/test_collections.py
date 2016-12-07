@@ -139,11 +139,17 @@ def test_get_by_specifier_raises():
     with pytest.raises(ValueError):
         get_by_specifier('a..', {})
     # invalid dict key
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         get_by_specifier('a', {})
     # invalid list index
-    with pytest.raises(IndexError):
+    with pytest.raises(ValueError):
         get_by_specifier('[0]', [])
+
+
+def test_get_by_specifier_default():
+    actual = get_by_specifier('a', {}, None)
+    expected = None
+    assert actual == expected
 
 
 def test_get_by_specifier_works():
