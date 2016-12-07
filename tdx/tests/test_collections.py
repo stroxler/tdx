@@ -2,7 +2,13 @@ import copy
 
 import pytest
 
-from ..collections import add_dicts, add_sets, add_lists, flatten
+from ..collections import (
+    get_by_specifier,
+    add_dicts,
+    add_sets,
+    add_lists,
+    flatten,
+)
 
 
 def test_add_dicts_works():
@@ -126,3 +132,50 @@ def test_flatten():
     flattened = flatten(*args)  # the key is that this doens't raise
     with pytest.raises(ZeroDivisionError):
         list(flattened)
+
+
+def test_get_by_specifier_raises():
+    # invalid specifier
+    with pytest.raises(ValueError):
+        get_by_specifier('a..', {})
+    # invalid dict key
+    with pytest.raises(KeyError):
+        get_by_specifier('a', {})
+    # invalid list index
+    with pytest.raises(IndexError):
+        get_by_specifier('[0]', [])
+
+
+def test_get_by_specifier_works():
+    def run_test_case(specifier, collection, expected, description):
+        actual = get_by_specifier(specifier, collection)
+        assert actual == expected, description
+
+    test_cases = [
+        {'specifier': '[0]',
+         'collection': ['a', 'b'],
+         'expected': 'a',
+         'description': 'basic list indexing'},
+        {'specifier': 'k',
+         'collection': {'k': 'v'},
+         'expected': 'v',
+         'description': 'basic dict indexing'},
+        {'specifier': 'k',
+         'collection': {'k': 'v'},
+         'expected': 'v',
+         'description': 'list + dict indexing'},
+        {'specifier': '[0].k',
+         'collection': [{'k': 'v'}],
+         'expected': 'v',
+         'description': 'list + dict indexing'},
+        {'specifier': 'k[0][1]',
+         'collection': {'k': [['a', 'v']]},
+         'expected': 'v',
+         'description': 'dict + list indexing'},
+        {'specifier': 'k.k1',
+         'collection': {'k': {'k0': 'a', 'k1': 'b'}},
+         'expected': 'b',
+         'description': 'nested dict indexing'},
+    ]
+    for test_case in test_cases:
+        run_test_case(**test_case)
