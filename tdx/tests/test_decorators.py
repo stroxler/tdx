@@ -175,7 +175,7 @@ class Failer(object):
     """
 
     def __init__(self,
-                 times_to_fail, n_retry,
+                 times_to_fail, attempts,
                  exception_to_raise=ValueError,
                  msg='test error', exceptions=(ValueError,),
                  warn_f=None, warn=True, warn_msg='oops',
@@ -187,7 +187,7 @@ class Failer(object):
         self.exception_to_raise = exception_to_raise
         self.msg = msg
 
-        @retry(n_retry, exceptions,
+        @retry(attempts, exceptions,
                warn=warn, warn_f=warn_f, warn_msg=warn_msg,
                wait_time=wait_time, wait_multiplier=wait_multiplier,
                jitter=jitter,
@@ -216,7 +216,7 @@ class WarnLogger(object):
 
 def test_retry_is_noop_if_f_does_not_raise():
     failer = Failer(
-        times_to_fail=0, n_retry=0,
+        times_to_fail=0, attempts=1,
     )
     assert failer.f() == 42
     assert failer.n_fail == 0
@@ -224,7 +224,7 @@ def test_retry_is_noop_if_f_does_not_raise():
 
 def test_retry_is_noop_if_f_raises_wrong_error():
     failer = Failer(
-        times_to_fail=1, n_retry=10, exception_to_raise=TypeError,
+        times_to_fail=1, attempts=11, exception_to_raise=TypeError,
     )
     with pytest.raises(TypeError):
         failer.f()
@@ -233,15 +233,15 @@ def test_retry_is_noop_if_f_raises_wrong_error():
 
 def test_retry_will_catch_limited_failures():
     failer = Failer(
-        times_to_fail=2, n_retry=2,
+        times_to_fail=2, attempts=3,
     )
     assert failer.f() == 42
     assert failer.n_fail == 2
 
 
-def test_retry_gives_up_after_n_retry():
+def test_retry_gives_up_after_attempts():
     failer = Failer(
-        times_to_fail=10, n_retry=2,
+        times_to_fail=10, attempts=3,
     )
     with pytest.raises(ValueError):
         failer.f()
@@ -252,7 +252,7 @@ def test_retry_warns_appropriately():
     # test that warn=False works
     warn_logger = WarnLogger()
     failer = Failer(
-        times_to_fail=1, n_retry=2,
+        times_to_fail=1, attempts=3,
         warn=False, warn_f=warn_logger.warn,
         warn_msg="oops {f}, {exception!r}",
     )
@@ -262,7 +262,7 @@ def test_retry_warns_appropriately():
     # test that warn=True works
     warn_logger = WarnLogger()
     failer = Failer(
-        times_to_fail=1, n_retry=2,
+        times_to_fail=1, attempts=3,
         warn=True, warn_f=warn_logger.warn,
         warn_msg="oops {f}, {exception!r}",
     )
@@ -278,7 +278,7 @@ def test_retry_backoff_with_no_wait_first(monkeypatch):
         times.append(time)
     monkeypatch.setattr(time, 'sleep', mysleep)
     failer = Failer(
-        times_to_fail=3, n_retry=3, wait_time=1, wait_multiplier=2,
+        times_to_fail=3, attempts=4, wait_time=1, wait_multiplier=2,
         no_wait_first_retry=True,
     )
     failer.f()
@@ -292,7 +292,7 @@ def test_retry_backoff_with_wait_first(monkeypatch):
         times.append(time)
     monkeypatch.setattr(time, 'sleep', mysleep)
     failer = Failer(
-        times_to_fail=3, n_retry=3, wait_time=1, wait_multiplier=2,
+        times_to_fail=3, attempts=4, wait_time=1, wait_multiplier=2,
         no_wait_first_retry=False,
     )
     failer.f()
@@ -310,7 +310,7 @@ def test_retry_backoff_randomized(monkeypatch):
     monkeypatch.setattr(time, 'sleep', mysleep)
     monkeypatch.setattr(random, 'uniform', myuniform)
     failer = Failer(
-        times_to_fail=2, n_retry=2, wait_time=1, wait_multiplier=2,
+        times_to_fail=2, attempts=3, wait_time=1, wait_multiplier=2,
         jitter=0.5,
         no_wait_first_retry=False,
     )

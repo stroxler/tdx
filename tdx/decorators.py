@@ -61,7 +61,7 @@ def _wrapt_proxy_decorator(actual_wrapper):
     return proxied_wrapper
 
 
-def retry(n_retry,
+def retry(attempts,
           exceptions=(Exception,),
           wait_time=1, wait_multiplier=2,
           jitter=0.1,
@@ -72,8 +72,8 @@ def retry(n_retry,
 
     PARAMETERS
     ----------
-    n_retry : int
-        Number of times to retry
+    attemtps : int
+        Total number of times to try (including the first)
     exceptions : tuple, optional
         A list or tuple of exception types to catch. If not specified then
         we catch Exception (so anything). Any exception that isn't a subtype
@@ -134,7 +134,7 @@ def retry(n_retry,
                 return f(*args, **kwargs)
             except exceptions as e:
                 failed += 1
-                if failed > n_retry:
+                if failed >= attempts:
                     raise
                 if warn:
                     warn_f(warn_msg.format(f=f.__name__, exception=e))
