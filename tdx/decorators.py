@@ -103,8 +103,12 @@ def retry(attempts,
         Function to call with warning message. If `None` and `warn` is True,
         then we use `warnings.warn`
     warn_msg : string, optional
-        String to use in warning message. Can use python formatting keys
-        '{f}' and '{exception}' or '{exception!r}' in the message.
+        String to use in warning message. You can use the following
+        format keys in your exception if you'd like:
+            '{f}' for the name of the function
+            '{exception}' for the exception caught
+            '{n_failure}' for the number of failures so far
+            '{next_wait_s}' for the time we'll wait till next retry
 
     RETURNS
     -------
@@ -136,11 +140,18 @@ def retry(attempts,
                 failed += 1
                 if failed >= attempts:
                     raise
-                if warn:
-                    warn_f(warn_msg.format(f=f.__name__, exception=e))
                 if failed > 1 or (not no_wait_first_retry):
-                    time.sleep(randomized_wait(wait))
+                    next_wait_s = randomized_wait(wait)
                     wait *= wait_multiplier
+                else:
+                    next_wait_s = 0
+                if warn:
+                    warn_f(warn_msg.format(
+                        f=f.__name__, exception=e,
+                        n_failure=failed,
+                        next_wait_s=next_wait_s,
+                    ))
+                time.sleep(next_wait_s)
 
     return wrapper
 

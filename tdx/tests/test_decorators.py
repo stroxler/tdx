@@ -254,7 +254,7 @@ def test_retry_warns_appropriately():
     failer = Failer(
         times_to_fail=1, attempts=3,
         warn=False, warn_f=warn_logger.warn,
-        warn_msg="oops {f}, {exception!r}",
+        warn_msg="oops {f}, {exception!r}, {n_failure}, {next_wait_s}",
     )
     failer.f()
     assert failer.n_fail == 1
@@ -264,11 +264,11 @@ def test_retry_warns_appropriately():
     failer = Failer(
         times_to_fail=1, attempts=3,
         warn=True, warn_f=warn_logger.warn,
-        warn_msg="oops {f}, {exception!r}",
+        warn_msg="oops {f}, {exception!r}, {n_failure}, {next_wait_s}",
     )
     failer.f()
     assert failer.n_fail == 1
-    assert warn_logger.messages == ["oops f, ValueError('test error',)"]
+    assert warn_logger.messages == ["oops f, ValueError('test error',), 1, 0"]
 
 
 def test_retry_backoff_with_no_wait_first(monkeypatch):
@@ -282,7 +282,7 @@ def test_retry_backoff_with_no_wait_first(monkeypatch):
         no_wait_first_retry=True,
     )
     failer.f()
-    assert times == [1, 2]
+    assert times == [0, 1, 2]
 
 
 def test_retry_backoff_with_wait_first(monkeypatch):
