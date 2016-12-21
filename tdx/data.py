@@ -86,6 +86,16 @@ def read_json(path):
         return json.load(f, encoding='utf-8')
 
 
+def json_string(content, compact=False):
+    """
+    Write `content` as json
+
+    """
+    indent = (None if compact else 2)
+    return json.dumps(content, indent=indent, encoding='utf-8',
+                      cls=DateTimeEncoder)
+
+
 def write_json(content, path, compact=False):
     """
     Write `content` to a json file at `path` with utf-8 encoding
@@ -96,11 +106,34 @@ def write_json(content, path, compact=False):
 
     """
     _raise_if_exists(path)
+    indent = (None if compact else 2)
     with open(path, 'w') as f:
-        if compact:
-            json.dump(content, f, encoding='utf-8')
-        else:
-            json.dump(content, f, indent=2, encoding='utf-8')
+        json.dump(content, f, indent=indent, encoding='utf-8',
+                  cls=DateTimeEncoder)
+
+
+def yaml_string(content, compact=False, _stream=None):
+    """
+    Write a python object to a yaml string.
+
+    You can force literal strings by casting contents to `literal_unicode`
+
+    """
+    _init_yaml()
+    return yaml.safe_dump(content, stream=_stream,
+                          default_flow_style=compact)
+
+
+def write_yaml(content, path, compact=False):
+    """
+    Write a python object to a yaml file. The file must not currently exist.
+
+    You can force literal strings by casting contents to `literal_unicode`
+
+    """
+    _raise_if_exists(path)
+    with open(path, 'w') as f:
+        yaml_string(content, compact, _stream=f)
 
 
 def write_content(content, path):
@@ -120,6 +153,27 @@ def read_content(path):
     """
     with open(path, 'r') as f:
         return f.read()
+
+
+# utilities ------------------
+
+class DateTimeEncoder(json.JSONEncoder):
+    """
+    Customized json encoder that can handle datetime.date and
+    datetime.datetime; they are converted to iso format
+
+    When you decode, the result will be a string (tdx does not currently have
+    auto-decoding), but it should be easily machine-convertible
+
+    Adapted from this Stack Overflow thread (extended to dates as well as datetimes)
+    http://stackoverflow.com/questions/11875770/how-to-overcome-datetime-datetime-not-json-serializable-in-python # noqa
+    """
+
+    def default(self, o):
+        if isinstance(o, datetime.datetime) or isinstance(o, datetime.date):
+            return o.isoformat()
+
+        return json.JSONEncoder.default(self, o)
 
 
 def _raise_if_exists(path):
@@ -164,47 +218,3 @@ def _init_yaml():
     yaml.SafeDumper.add_representer(
         literal_unicode, represent_literal_unicode
     )
-
-
-def yaml_string(content, compact=False, _stream=None):
-    """
-    Write a python object to a yaml string.
-
-    You can force literal strings by casting contents to `literal_unicode`
-
-    """
-    _init_yaml()
-    return yaml.safe_dump(content, stream=_stream,
-                          default_flow_style=compact)
-
-
-def write_yaml(content, path, compact=False):
-    """
-    Write a python object to a yaml file. The file must not currently exist.
-
-    You can force literal strings by casting contents to `literal_unicode`
-
-    """
-    _raise_if_exists(path)
-    with open(path, 'w') as f:
-        yaml_string(content, compact, _stream=f)
-
-
-# Convert datetimes to strings. From SO thread:
-class DateTimeEncoder(json.JSONEncoder):
-    """
-    Customized json encoder that can handle datetime.date and
-    datetime.datetime; they are converted to iso format
-
-    When you decode, the result will be a string (tdx does not currently have
-    auto-decoding), but it should be easily machine-convertible
-
-    Adapted from this Stack Overflow thread (extended to dates as well as datetimes)
-    http://stackoverflow.com/questions/11875770/how-to-overcome-datetime-datetime-not-json-serializable-in-python # noqa
-    """
-
-    def default(self, o):
-        if isinstance(o, datetime.datetime) or isinstance(o, datetime.date):
-            return o.isoformat()
-
-        return json.JSONEncoder.default(self, o)

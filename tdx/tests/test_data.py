@@ -5,7 +5,7 @@ import pytest
 from ..data import (
     read_json, read_yaml, write_json, read_content, write_content,
     path_from, directory_of, load_python_object, DateTimeEncoder,
-    literal_unicode, write_yaml, yaml_string
+    literal_unicode, write_yaml, yaml_string, json_string,
 )
 
 
@@ -114,6 +114,15 @@ def test_DateTimeEncoder():
         'not_a_date': original['not_a_date'],
     }
     assert round_tripped == expected
+
+
+def test_json_string():
+    content = {
+        'key0': datetime.datetime(1999, 1, 1, 1, 1, 1)
+    }
+    actual = json_string(content, compact=True)
+    expected = '{"key0": "1999-01-01T01:01:01"}'
+    assert actual == expected
 
 
 def test_yaml_string():
