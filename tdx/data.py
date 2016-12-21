@@ -130,6 +130,66 @@ def _raise_if_exists(path):
         )
 
 
+class literal_unicode(unicode):
+    """
+    Class that lets users control when a yaml literal string
+    (using the '|' character) will be used for output
+
+    See http://stackoverflow.com/questions/6432605/any-yaml-libraries-in-python-that-support-dumping-of-long-strings-as-block-liter  # noqa
+    """
+    pass
+
+
+_YAML_INITIALIZED = False
+
+
+def _init_yaml():
+    """
+    Initialize yaml with customized tdx behavior
+    """
+    global _YAML_INITIALIZED
+    if _YAML_INITIALIZED:
+        return
+    from yaml.representer import SafeRepresenter
+    def change_style(style, representer):  # noqa
+        def new_representer(dumper, data):
+            scalar = representer(dumper, data)
+            scalar.style = style
+            return scalar
+        return new_representer
+    represent_literal_unicode = change_style(
+        '|',
+        SafeRepresenter.represent_unicode
+    )
+    yaml.SafeDumper.add_representer(
+        literal_unicode, represent_literal_unicode
+    )
+
+
+def yaml_string(content, compact=False, _stream=None):
+    """
+    Write a python object to a yaml string.
+
+    You can force literal strings by casting contents to `literal_unicode`
+
+    """
+    _init_yaml()
+    return yaml.safe_dump(content, stream=_stream,
+                          default_flow_style=compact)
+
+
+def write_yaml(content, path, compact=False):
+    """
+    Write a python object to a yaml file. The file must not currently exist.
+
+    You can force literal strings by casting contents to `literal_unicode`
+
+    """
+    _raise_if_exists(path)
+    with open(path, 'w') as f:
+        yaml_string(content, compact, _stream=f)
+
+
 # Convert datetimes to strings. From SO thread:
 class DateTimeEncoder(json.JSONEncoder):
     """

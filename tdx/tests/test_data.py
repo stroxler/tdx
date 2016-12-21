@@ -1,13 +1,15 @@
 import json
 import datetime
+import textwrap
 import pytest
 from ..data import (
     read_json, read_yaml, write_json, read_content, write_content,
     path_from, directory_of, load_python_object, DateTimeEncoder,
+    literal_unicode, write_yaml, yaml_string
 )
 
 
-def test_test_write_and_read_data(tmpdir):
+def test_write_json_and_read_data(tmpdir):
     original = {
         'x': [1, 2],
         'y': 'a string'
@@ -15,6 +17,7 @@ def test_test_write_and_read_data(tmpdir):
     f = tmpdir.mkdir('tests').join('dump.json')
     path = str(f)
 
+    # test that if we write as json we can read as yaml or json
     write_json(original, path)
     out_from_json = read_json(path)
     assert out_from_json == original
@@ -25,6 +28,24 @@ def test_test_write_and_read_data(tmpdir):
     # make sure we raise if trying to write an existing file
     with pytest.raises(ValueError):
         write_json(original, path)
+
+
+def test_write_yaml_and_read_data(tmpdir):
+    original = {
+        'x': [1, 2],
+        'y': 'a string'
+    }
+    f = tmpdir.mkdir('tests').join('dump.json')
+    path = str(f)
+
+    # test that if we write as yaml we can read as yaml
+    write_yaml(original, path)
+    out_from_yaml = read_yaml(path)
+    assert out_from_yaml == original
+
+    # make sure we raise if trying to write an existing file
+    with pytest.raises(ValueError):
+        write_yaml(original, path)
 
 
 def test_write_and_read_content(tmpdir):
@@ -93,3 +114,30 @@ def test_DateTimeEncoder():
         'not_a_date': original['not_a_date'],
     }
     assert round_tripped == expected
+
+
+def test_yaml_string():
+    content = {
+        'key0': 'value',
+        'key1': ['a', 'b', 'c'],
+        'key2': True,
+        'key3': 42,
+        'key4': literal_unicode('a longer\n  string\nwith newlines')
+    }
+    actual = yaml_string(content, compact=False)
+    expected = textwrap.dedent(
+        """
+        key0: value
+        key1:
+        - a
+        - b
+        - c
+        key2: true
+        key3: 42
+        key4: |-
+          a longer
+            string
+          with newlines
+        """
+    ).strip() + '\n'
+    assert actual == expected
