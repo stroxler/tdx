@@ -237,6 +237,6 @@ def _get_arguments_no_extra_positional(call_args, call_kwargs,
     # set the f_kwargs key
     if f_kwargs is not None:
         arguments[f_kwargs] = {
-            k: v for k, v in call_kwargs.iteritems() if k not in f_args
+            k: v for k, v in call_kwargs.items() if k not in f_args
         }
     return arguments

@@ -1,9 +1,16 @@
 "Utilities for handling files and data and loading"
+import sys
 import importlib
 import os
 import json
 import yaml
 import datetime
+
+
+if sys.version_info.major > 2:
+    unicode_class = str
+else:
+    unicode_class = unicode
 
 
 def load_python_object(identifier, descr):
@@ -83,7 +90,10 @@ def read_json(path):
     Return the contents of a json file, assuming utf-8 encoding
     """
     with open(path, 'r') as f:
-        return json.load(f, encoding='utf-8')
+        if sys.version_info.major > 2:
+            return json.load(f)
+        else:
+            return json.load(f, encoding='utf-8')
 
 
 def json_string(content, compact=False):
@@ -92,8 +102,7 @@ def json_string(content, compact=False):
 
     """
     indent = (None if compact else 2)
-    return json.dumps(content, indent=indent, encoding='utf-8',
-                      cls=DateTimeEncoder)
+    return json.dumps(content, indent=indent, cls=DateTimeEncoder)
 
 
 def write_json(content, path, compact=False):
@@ -108,8 +117,7 @@ def write_json(content, path, compact=False):
     _raise_if_exists(path)
     indent = (None if compact else 2)
     with open(path, 'w') as f:
-        json.dump(content, f, indent=indent, encoding='utf-8',
-                  cls=DateTimeEncoder)
+        json.dump(content, f, indent=indent, cls=DateTimeEncoder)
 
 
 def yaml_string(content, compact=False, _stream=None):
@@ -184,7 +192,7 @@ def _raise_if_exists(path):
         )
 
 
-class literal_unicode(unicode):
+class literal_unicode(unicode_class):
     """
     Class that lets users control when a yaml literal string
     (using the '|' character) will be used for output
@@ -211,10 +219,16 @@ def _init_yaml():
             scalar.style = style
             return scalar
         return new_representer
-    represent_literal_unicode = change_style(
-        '|',
-        SafeRepresenter.represent_unicode
-    )
+    if sys.version_info.major > 2:
+        represent_literal_unicode = change_style(
+            '|',
+            SafeRepresenter.represent_str
+        )
+    else:
+        represent_literal_unicode = change_style(
+            '|',
+            SafeRepresenter.represent_unicode
+        )
     yaml.SafeDumper.add_representer(
         literal_unicode, represent_literal_unicode
     )
