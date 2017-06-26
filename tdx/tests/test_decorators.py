@@ -2,11 +2,12 @@ from __future__ import print_function
 import inspect
 import time
 import random
+import json
 
 import pytest
 from ..decorators import (
     error_prefix_from_args, debug, _wrapt_proxy_decorator,
-    wraptify, retry
+    wraptify, retry, print_json
 )
 
 
@@ -316,3 +317,50 @@ def test_retry_backoff_randomized(monkeypatch):
     )
     failer.f()
     assert times == [0.75, 1.5]
+
+
+def test_cli_jsonify_noargs(capsys):
+    @print_json()
+    def f(key, value, **kwargs):
+        d = {key: value}
+        for k, v in kwargs.items():
+            d[k] = v
+        return d
+
+    f('x', 5, y=6)
+    out, err = capsys.readouterr()
+    assert err == ''
+    assert out.strip() == json.dumps({'x': 5, 'y': 6}, indent=2)
+
+    @print_json()
+    def f(xs):
+        return xs
+    f([1, 2, 3])
+    out, err = capsys.readouterr()
+    assert err == ''
+    assert out.strip() == json.dumps([1, 2, 3], indent=2)
+
+
+def test_cli_jsonify_with_key(capsys):
+    @print_json('key')
+    def f():
+        return 15
+
+    f()
+    out, err = capsys.readouterr()
+    assert err == ''
+    assert out.strip() == json.dumps({'key': 15}, indent=2)
+
+
+def test_cli_jsonfiy_with_convert(capsys):
+    def convert(value):
+        return {'key': value + 1}
+
+    @print_json(converter=convert)
+    def f():
+        return 15
+
+    f()
+    out, err = capsys.readouterr()
+    assert err == ''
+    assert out.strip() == json.dumps({'key': 16}, indent=2)

@@ -3,6 +3,7 @@ from __future__ import print_function
 import warnings
 import time
 import random
+import json
 
 import wrapt
 
@@ -272,6 +273,35 @@ def debug(debug=True, delay=0, use_debugger=None):
             else:
                 debugger = use_debugger
             debugger.post_mortem(tb)
+
+    return wrapper
+
+
+def print_json(key=None, converter=lambda x: x):
+    """
+    Decorator to wrap a value-returning function in a json view, by
+    converting the output value to json and printing to stdout.
+
+    PARAMETERS
+    ----------
+    key : {string, None}, optional
+        If not None, then we use `{key: value}` as the object to convert
+        to json, where `value` is the output of calling the target
+        function.
+    converter : callable, optional
+        If `key` is None and `converter` is specified, we use
+        `converter(value)` as the object to convert to json. Defaults
+        to the identity function.
+
+    """
+    if key is not None:
+        converter = lambda x: {key: x}  # noqa
+
+    @wrapt.decorator
+    def wrapper(wrapped, instance, args, kwargs):
+        value = wrapped(*args, **kwargs)
+        to_print = converter(value)
+        print(json.dumps(to_print, indent=2))
 
     return wrapper
 
